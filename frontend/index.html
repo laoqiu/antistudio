@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus Agent Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+          },
+        },
+      }
+    </script>
+    <script>
+      // PREVENT FLASH OF WRONG THEME: Check immediately before body renders
+      (function() {
+        try {
+          // Check localStorage or system preference. Default to 'dark' if nothing set.
+          const storedTheme = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          
+          if (storedTheme === 'dark' || (!storedTheme && prefersDark) || !storedTheme) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://esm.sh/reactflow@11.10.1/dist/style.css" />
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        /* Define base colors here to match Tailwind classes used in App.tsx */
+        background-color: #ffffff; 
+        color: #18181b; /* zinc-900 */
+        /* Removed transition property for instant theme switching */
+      }
+      /* Immediate Dark Mode Override */
+      html.dark body {
+        background-color: #000000;
+        color: #f4f4f5; /* zinc-100 */
+      }
+
+      /* Custom Scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.3);
+        border-radius: 20px;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(75, 85, 99, 0.3);
+      }
+
+      /* Loading Mask */
+      #loading-mask {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #ffffff;
+        transition: opacity 0.3s ease-out;
+      }
+      html.dark #loading-mask {
+        background-color: #000000;
+      }
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 2px solid #e4e4e7; /* zinc-200 */
+        border-top-color: #3b82f6; /* blue-500 */
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+      html.dark .loading-spinner {
+        border-color: #27272a; /* zinc-800 */
+        border-top-color: #3b82f6;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "react-markdown": "https://esm.sh/react-markdown@9.0.1?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.363.0?external=react,react-dom",
+    "@monaco-editor/react": "https://esm.sh/@monaco-editor/react@4.6.0?external=react,react-dom",
+    "reactflow": "https://esm.sh/reactflow@11.10.1?external=react,react-dom"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="loading-mask">
+      <div class="loading-spinner"></div>
+    </div>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

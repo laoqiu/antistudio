@@ -1,0 +1,5 @@
+{
+  "name": "Nexus Agent Interface",
+  "description": "A high-fidelity AI agent interface featuring collapsible Chain-of-Thought reasoning, Human-in-the-Loop (HIP) interactions, and a rich input experience with attachment and code reference support.",
+  "requestFramePermissions": []
+}
