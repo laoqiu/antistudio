@@ -57,7 +57,11 @@ import {
   Type,
   Variable,
   Sliders,
-  Video
+  Video,
+  Download,
+  Star,
+  Calendar,
+  Tag
 } from 'lucide-react';
 
 export const Icons = {
@@ -123,5 +127,9 @@ export const Icons = {
   Type,
   Variable,
   Sliders,
-  Video
+  Video,
+  Download,
+  Star,
+  Calendar,
+  Tag
 };

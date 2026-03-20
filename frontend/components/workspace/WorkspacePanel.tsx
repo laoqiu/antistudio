@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { WorkspaceTab, TabType, A2UIAction } from '../../types';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { WorkspaceTab, TabType, A2UIAction, Workflow } from '../../types';
 import { Icons } from '../icons';
 import { Terminal } from './Terminal';
 import { ProjectView } from './ProjectView';
 import { PreviewTab } from './PreviewTab';
 import { BrowserTab } from './BrowserTab';
 import { WorkflowEditor } from './WorkflowEditor';
+import { WorkflowDetailTab } from './WorkflowDetailTab';
 
 interface WorkspacePanelProps {
   theme: 'light' | 'dark';
@@ -19,10 +20,15 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
     { id: 'preview', type: 'preview', title: '界面预览' },
     { id: 'proj-1', type: 'project', title: 'Nexus Client' },
   ]);
-  
+
   const [activeTabId, setActiveTabId] = useState<string>('preview');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
+
+  // Tab scrolling
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   // Switch to preview tab automatically when activeA2UI changes to a new pending item
   useEffect(() => {
@@ -30,6 +36,28 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
       setActiveTabId('preview');
     }
   }, [activeA2UI]);
+
+  // Check scroll position
+  const checkScroll = useCallback(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+  }, []);
+
+  // Scroll tabs
+  const scrollTabs = useCallback((direction: 'left' | 'right') => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 200;
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  }, []);
 
   // Handle external tab open requests
   useEffect(() => {
@@ -42,6 +70,22 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
       setActiveTabId(externalOpenTab.id);
     }
   }, [externalOpenTab]);
+
+  // Check scroll on mount and when tabs change
+  useEffect(() => {
+    checkScroll();
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => checkScroll();
+    container.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [tabs, checkScroll]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -81,18 +125,33 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
     <div className="w-full h-full flex flex-col bg-white dark:bg-[#1e1e1e] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm">
       
       {/* Toolbar / Tab Bar */}
-      <div className="flex items-center gap-2 px-2 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1e1e1e]">
-         
+      <div className="flex items-center gap-1 px-2 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1e1e1e]">
+
+         {/* Left Scroll Button */}
+         {canScrollLeft && (
+           <button
+             onClick={() => scrollTabs('left')}
+             className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+             title="向左滚动"
+           >
+             <Icons.ArrowLeft className="w-3.5 h-3.5" />
+           </button>
+         )}
+
          {/* Tabs Container */}
-         <div className="flex-1 flex items-center gap-2 overflow-x-auto custom-scrollbar hide-scrollbar">
+         <div
+           ref={tabsContainerRef}
+           className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide"
+           onScroll={checkScroll}
+         >
             {tabs.map(tab => (
-              <div 
+              <div
                 key={tab.id}
                 onClick={() => setActiveTabId(tab.id)}
                 className={`
-                   group relative flex items-center gap-2 px-3 py-1.5 text-xs font-medium cursor-pointer transition-all duration-200 rounded-lg max-w-[160px] border
-                   ${activeTabId === tab.id 
-                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 shadow-sm' 
+                   group relative flex items-center gap-2 px-3 py-1.5 text-xs font-medium cursor-pointer transition-all duration-200 rounded-lg max-w-[160px] border shrink-0
+                   ${activeTabId === tab.id
+                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 shadow-sm'
                      : 'bg-transparent border-transparent text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100'}
                 `}
                 title={tab.title}
@@ -103,17 +162,18 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
                     {tab.type === 'preview' && <Icons.LayoutTemplate className="w-3.5 h-3.5" />}
                     {tab.type === 'browser' && <Icons.Globe className="w-3.5 h-3.5" />}
                     {tab.type === 'workflow' && <Icons.Zap className="w-3.5 h-3.5" />}
+                    {tab.type === 'workflow-detail' && <Icons.File className="w-3.5 h-3.5" />}
                  </span>
                  <span className="truncate flex-1">{tab.title}</span>
-                 
+
                  {/* Close Button - Hidden for Preview Tab */}
                  {tab.id !== 'preview' && (
-                   <button 
+                   <button
                      onClick={(e) => closeTab(e, tab.id)}
                      className={`
                        p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ml-1
-                       ${activeTabId === tab.id 
-                          ? 'hover:bg-blue-200 dark:hover:bg-blue-800/50 text-blue-600 dark:text-blue-300' 
+                       ${activeTabId === tab.id
+                          ? 'hover:bg-blue-200 dark:hover:bg-blue-800/50 text-blue-600 dark:text-blue-300'
                           : 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400'}
                      `}
                    >
@@ -123,6 +183,17 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
               </div>
             ))}
          </div>
+
+         {/* Right Scroll Button */}
+         {canScrollRight && (
+           <button
+             onClick={() => scrollTabs('right')}
+             className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+             title="向右滚动"
+           >
+             <Icons.ArrowRight className="w-3.5 h-3.5" />
+           </button>
+         )}
 
          {/* Add Button with Dropdown */}
          <div className="relative shrink-0" ref={addMenuRef}>
@@ -177,21 +248,44 @@ export const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ theme, activeA2U
       {/* Content Area */}
       <div className="flex-1 relative bg-white dark:bg-[#1e1e1e]">
          {tabs.map(tab => (
-            <div 
-                key={tab.id} 
+            <div
+                key={tab.id}
                 className="w-full h-full"
                 style={{ display: activeTabId === tab.id ? 'block' : 'none' }}
             >
                 {tab.type === 'project' && <ProjectView theme={theme} />}
                 {tab.type === 'terminal' && <Terminal />}
                 {tab.type === 'preview' && (
-                  <PreviewTab 
-                    data={activeA2UI} 
+                  <PreviewTab
+                    data={activeA2UI}
                     onSubmit={onA2UISubmit}
                   />
                 )}
                 {tab.type === 'browser' && <BrowserTab />}
                 {tab.type === 'workflow' && <WorkflowEditor />}
+                {tab.type === 'workflow-detail' && tab.data?.workflow && (
+                  <WorkflowDetailTab
+                    workflow={tab.data.workflow as Workflow}
+                    onEdit={() => {
+                      // Open editor for this workflow
+                      const editorTab: WorkspaceTab = {
+                        id: `workflow-editor-${tab.data?.workflow.id}`,
+                        type: 'workflow',
+                        title: `${tab.data?.workflow.name} - 编辑`,
+                        data: { workflow: tab.data?.workflow }
+                      };
+                      const exists = tabs.find(t => t.id === editorTab.id);
+                      if (!exists) {
+                        setTabs(prev => [...prev, editorTab]);
+                      }
+                      setActiveTabId(editorTab.id);
+                    }}
+                    onInstall={() => {
+                      console.log('Installing workflow:', tab.data?.workflow.name);
+                      // Handle installation logic
+                    }}
+                  />
+                )}
             </div>
          ))}
          

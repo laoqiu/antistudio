@@ -83,11 +83,15 @@ export interface Workflow {
   tags?: string[];
   nodes?: any[]; // Simplified for mock
   edges?: any[];
+  readme?: string; // Markdown content for workflow details
+  version?: string;
+  downloads?: number;
+  rating?: number;
 }
 
 // --- Workspace Types ---
 
-export type TabType = 'project' | 'terminal' | 'preview' | 'browser' | 'workflow';
+export type TabType = 'project' | 'terminal' | 'preview' | 'browser' | 'workflow' | 'workflow-detail';
 
 export interface WorkspaceTab {
   id: string;
@@ -96,9 +100,10 @@ export interface WorkspaceTab {
   // Specific data for each type can be stored here
   data?: {
     // For project tabs, we might track the active file path or content state
-    activeFileId?: string; 
+    activeFileId?: string;
     // For workflow tabs
     workflowId?: string;
+    workflow?: Workflow;
   };
 }
 

@@ -312,11 +312,12 @@ const App: React.FC = () => {
   };
 
   const handleSelectWorkflow = (workflow: Workflow) => {
+    // Open workflow detail page instead of editor directly
     const newTab: WorkspaceTab = {
-      id: `wf-editor-${workflow.id}`,
-      type: 'workflow',
+      id: `wf-detail-${workflow.id}`,
+      type: 'workflow-detail',
       title: workflow.name,
-      data: { workflowId: workflow.id }
+      data: { workflow }
     };
     setExternalOpenTab(newTab);
   };

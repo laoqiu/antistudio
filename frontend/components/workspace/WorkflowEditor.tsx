@@ -971,11 +971,12 @@ const VariableList: React.FC<{
 interface ConfigPanelProps {
   node: Node<NodeData> | null;
   nodes: Node<NodeData>[];
+  edges: Edge[];
   onClose: () => void;
   onChange: (nodeId: string, newData: NodeData) => void;
 }
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ node, nodes, onClose, onChange }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ node, nodes, edges, onClose, onChange }) => {
   const [localData, setLocalData] = useState<NodeData>({});
 
   useEffect(() => {
@@ -986,6 +987,41 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ node, nodes, onClose, onChang
 
   if (!node) return null;
 
+  // Helper function to find all ancestor nodes (nodes that come before current node)
+  const findAncestorNodes = useCallback((currentNodeId: string): Set<string> => {
+    const ancestors = new Set<string>();
+    const visited = new Set<string>();
+
+    // BFS to find all nodes that can reach the current node
+    const queue: string[] = [currentNodeId];
+
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!;
+
+      if (visited.has(nodeId)) continue;
+      visited.add(nodeId);
+
+      // Find all edges that point TO this node
+      const incomingEdges = edges.filter(e => e.target === nodeId);
+
+      for (const edge of incomingEdges) {
+        const sourceId = edge.source;
+
+        // Add source to ancestors (unless it's the current node itself)
+        if (sourceId !== currentNodeId) {
+          ancestors.add(sourceId);
+        }
+
+        // Continue traversing backwards
+        if (!visited.has(sourceId)) {
+          queue.push(sourceId);
+        }
+      }
+    }
+
+    return ancestors;
+  }, [edges]);
+
   const availableReferences = useMemo(() => {
     const refs: string[] = [];
 
@@ -994,8 +1030,12 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ node, nodes, onClose, onChang
     refs.push('state.messages');    // Message history
     refs.push('state.context');     // Shared context
 
+    // Get all ancestor nodes (nodes before current node)
+    const ancestorNodeIds = findAncestorNodes(node.id);
+
     nodes.forEach(n => {
-        if (n.id === node.id) return; // Skip current node
+        // Only include nodes that are ancestors of the current node
+        if (!ancestorNodeIds.has(n.id)) return;
 
         // Start node - initial state
         if (n.type === 'start') {
@@ -1054,7 +1094,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ node, nodes, onClose, onChang
     }
 
     return [...new Set(refs)]; // Remove duplicates
-  }, [nodes, node.id, node.type]);
+  }, [nodes, edges, node.id, node.type, findAncestorNodes]);
 
   const handleChange = (key: keyof NodeData, value: any) => {
     const newData = { ...localData, [key]: value };
@@ -1782,10 +1822,11 @@ export const WorkflowEditor: React.FC = () => {
 
       {/* Side Config Panel */}
       {selectedNode && (selectedNode.type !== 'start' && selectedNode.type !== 'end') && (
-        <ConfigPanel 
-           node={selectedNode} 
+        <ConfigPanel
+           node={selectedNode}
            nodes={nodes}
-           onClose={() => setSelectedNodeId(null)} 
+           edges={edges}
+           onClose={() => setSelectedNodeId(null)}
            onChange={updateNodeData}
         />
       )}
